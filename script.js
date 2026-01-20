@@ -7,6 +7,8 @@ class AssignmentTracker {
         this.currentYear = new Date().getFullYear();
         this.selectedDate = null;
         this.theme = this.loadTheme();
+        this.canvasConfig = this.loadCanvasConfig();
+        this.courseMappings = this.loadCourseMappings();
         this.init();
     }
 
@@ -16,6 +18,7 @@ class AssignmentTracker {
         this.renderAssignments();
         this.updateStats();
         this.renderCalendar();
+        this.checkCanvasConfig();
     }
 
     // Local Storage
@@ -67,6 +70,16 @@ class AssignmentTracker {
                 this.closeEditModal();
             }
         });
+
+        // Canvas integration
+        document.getElementById('canvasSettingsBtn').addEventListener('click', () => this.switchView('canvas'));
+        document.getElementById('canvasConfigForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveCanvasConfig();
+        });
+        document.getElementById('clearCanvasConfig').addEventListener('click', () => this.clearCanvasConfig());
+        document.getElementById('importCanvasBtn')?.addEventListener('click', () => this.importFromCanvas());
+        document.getElementById('refreshCanvasBtn')?.addEventListener('click', () => this.refreshCanvasCourses());
     }
 
     // View Management
@@ -75,15 +88,27 @@ class AssignmentTracker {
 
         // Update buttons
         document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+
+        // Hide all sections
+        document.getElementById('canvasSection').style.display = 'none';
+        document.querySelector('.add-assignment-section').style.display = 'none';
+        document.querySelector('.controls-section').style.display = 'none';
+        document.getElementById('listView').style.display = 'none';
+        document.getElementById('calendarView').style.display = 'none';
         if (view === 'list') {
             document.getElementById('listViewBtn').classList.add('active');
-            document.getElementById('listView').classList.add('active');
-            document.getElementById('calendarView').classList.remove('active');
-        } else {
+            document.querySelector('.add-assignment-section').style.display = 'block';
+            document.querySelector('.controls-section').style.display = 'block';
+            document.getElementById('listView').style.display = 'block';
+        } else if (view === 'calendar') {
             document.getElementById('calendarViewBtn').classList.add('active');
-            document.getElementById('calendarView').classList.add('active');
-            document.getElementById('listView').classList.remove('active');
+            document.querySelector('.add-assignment-section').style.display = 'block';
+            document.querySelector('.controls-section').style.display = 'block';
+            document.getElementById('calendarView').style.display = 'block';
             this.renderCalendar();
+        } else if (view === 'canvas') {
+            document.getElementById('canvasSettingsBtn').classList.add('active');
+            document.getElementById('canvasSection').style.display = 'block';
         }
     }
 
@@ -485,6 +510,262 @@ class AssignmentTracker {
         document.getElementById('totalAssignments').textContent = total;
         document.getElementById('incompleteAssignments').textContent = incomplete;
         document.getElementById('dueSoon').textContent = dueSoon;
+    }
+
+    // Canvas Integration
+    loadCanvasConfig() {
+        const stored = localStorage.getItem('canvasConfig');
+        return stored ? JSON.parse(stored) : null;
+    }
+
+    saveCanvasConfigToStorage(config) {
+        localStorage.setItem('canvasConfig', JSON.stringify(config));
+    }
+
+    loadCourseMappings() {
+        const stored = localStorage.getItem('courseMappings');
+        return stored ? JSON.parse(stored) : {};
+    }
+
+    saveCourseMappings() {
+        localStorage.setItem('courseMappings', JSON.stringify(this.courseMappings));
+    }
+
+    checkCanvasConfig() {
+        if (this.canvasConfig) {
+            document.getElementById('canvasUrl').value = this.canvasConfig.url;
+            document.getElementById('canvasToken').value = this.canvasConfig.token;
+        }
+    }
+
+    async saveCanvasConfig() {
+        const url = document.getElementById('canvasUrl').value.trim();
+        const token = document.getElementById('canvasToken').value.trim();
+
+        if (!url || !token) {
+            this.showCanvasStatus('error', 'Please provide both URL and access token.');
+            return;
+        }
+
+        // Test the connection
+        this.showCanvasStatus('info', 'Testing connection to Canvas...');
+
+        try {
+            const response = await fetch(`${url}/api/v1/users/self`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Invalid credentials or URL');
+            }
+
+            const user = await response.json();
+
+            this.canvasConfig = { url, token };
+            this.saveCanvasConfigToStorage(this.canvasConfig);
+
+            this.showCanvasStatus('success', `Successfully connected as ${user.name}!`);
+
+            // Load courses
+            await this.loadCanvasCourses();
+        } catch (error) {
+            this.showCanvasStatus('error', `Connection failed: ${error.message}`);
+        }
+    }
+
+    clearCanvasConfig() {
+        if (confirm('Are you sure you want to clear Canvas settings? This will remove your access token.')) {
+            localStorage.removeItem('canvasConfig');
+            localStorage.removeItem('courseMappings');
+            this.canvasConfig = null;
+            this.courseMappings = {};
+
+            document.getElementById('canvasUrl').value = '';
+            document.getElementById('canvasToken').value = '';
+            document.getElementById('canvasImportSection').style.display = 'none';
+            document.getElementById('courseMappingList').innerHTML = '';
+
+            this.showCanvasStatus('info', 'Canvas settings cleared.');
+        }
+    }
+
+    async loadCanvasCourses() {
+        if (!this.canvasConfig) return;
+
+        try {
+            const response = await fetch(`${this.canvasConfig.url}/api/v1/courses?enrollment_state=active&per_page=100`, {
+                headers: {
+                    'Authorization': `Bearer ${this.canvasConfig.token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load courses');
+            }
+
+            const courses = await response.json();
+
+            // Filter out concluded courses and show course mapping
+            const activeCourses = courses.filter(c => c.workflow_state !== 'concluded');
+
+            this.renderCourseMappings(activeCourses);
+
+            document.getElementById('canvasImportSection').style.display = 'block';
+        } catch (error) {
+            this.showCanvasStatus('error', `Failed to load courses: ${error.message}`);
+        }
+    }
+
+    renderCourseMappings(courses) {
+        const container = document.getElementById('courseMappingList');
+        const trackerClasses = ['INLS 992', 'INLS 776', 'ENEC 543', 'DATA 545', 'INLS 642'];
+
+        container.innerHTML = courses.map(course => {
+            const currentMapping = this.courseMappings[course.id] || '';
+
+            return `
+                <div class="course-mapping-item">
+                    <div class="course-name">${this.escapeHtml(course.name)}</div>
+                    <label>Map to:</label>
+                    <select data-course-id="${course.id}" class="course-mapping-select">
+                        <option value="">-- Skip this course --</option>
+                        ${trackerClasses.map(cls => `
+                            <option value="${cls}" ${currentMapping === cls ? 'selected' : ''}>${cls}</option>
+                        `).join('')}
+                    </select>
+                </div>
+            `;
+        }).join('');
+
+        // Add event listeners for mappings
+        container.querySelectorAll('.course-mapping-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const courseId = e.target.dataset.courseId;
+                const mapping = e.target.value;
+
+                if (mapping) {
+                    this.courseMappings[courseId] = mapping;
+                } else {
+                    delete this.courseMappings[courseId];
+                }
+
+                this.saveCourseMappings();
+            });
+        });
+    }
+
+    async refreshCanvasCourses() {
+        this.showImportStatus('info', 'Refreshing courses from Canvas...');
+        await this.loadCanvasCourses();
+        this.showImportStatus('success', 'Courses refreshed!');
+    }
+
+    async importFromCanvas() {
+        if (!this.canvasConfig) {
+            this.showImportStatus('error', 'Please configure Canvas first.');
+            return;
+        }
+
+        const mappedCourses = Object.keys(this.courseMappings).filter(id => this.courseMappings[id]);
+
+        if (mappedCourses.length === 0) {
+            this.showImportStatus('error', 'Please map at least one course to a class.');
+            return;
+        }
+
+        this.showImportStatus('info', 'Importing assignments from Canvas...');
+
+        let importedCount = 0;
+        let skippedCount = 0;
+
+        try {
+            for (const courseId of mappedCourses) {
+                const className = this.courseMappings[courseId];
+
+                // Fetch assignments for this course
+                const response = await fetch(
+                    `${this.canvasConfig.url}/api/v1/courses/${courseId}/assignments?per_page=100`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${this.canvasConfig.token}`
+                        }
+                    }
+                );
+
+                if (!response.ok) continue;
+
+                const assignments = await response.json();
+
+                // Import assignments that aren't already imported
+                for (const canvasAssignment of assignments) {
+                    if (!canvasAssignment.due_at) continue; // Skip assignments without due dates
+
+                    // Check if already imported (by checking if same title and class exists)
+                    const exists = this.assignments.some(a =>
+                        a.title === canvasAssignment.name &&
+                        a.class === className
+                    );
+
+                    if (exists) {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Import the assignment
+                    const assignment = {
+                        id: Date.now() + Math.random(), // Unique ID
+                        title: canvasAssignment.name,
+                        class: className,
+                        dueDate: new Date(canvasAssignment.due_at),
+                        priority: 'medium', // Default priority
+                        description: canvasAssignment.description?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
+                        completed: false,
+                        createdAt: new Date(),
+                        canvasId: canvasAssignment.id // Store Canvas ID for future reference
+                    };
+
+                    this.assignments.push(assignment);
+                    importedCount++;
+
+                    // Small delay to avoid ID collisions
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            }
+
+            this.saveAssignments();
+            this.renderAssignments();
+            this.updateStats();
+            this.renderCalendar();
+
+            const summary = `
+                <div class="import-summary">
+                    <h4>Import Complete!</h4>
+                    <ul>
+                        <li>${importedCount} new assignment(s) imported</li>
+                        <li>${skippedCount} assignment(s) skipped (already exist)</li>
+                    </ul>
+                </div>
+            `;
+
+            this.showImportStatus('success', summary);
+
+        } catch (error) {
+            this.showImportStatus('error', `Import failed: ${error.message}`);
+        }
+    }
+
+    showCanvasStatus(type, message) {
+        const statusEl = document.getElementById('canvasStatus');
+        statusEl.className = `canvas-status ${type}`;
+        statusEl.innerHTML = message;
+    }
+
+    showImportStatus(type, message) {
+        const statusEl = document.getElementById('importStatus');
+        statusEl.className = `import-status ${type}`;
+        statusEl.innerHTML = message;
     }
 
     // Theme Management

@@ -13,10 +13,68 @@
             <div class="view-toggle">
                 <button id="listViewBtn" class="view-btn active">List View</button>
                 <button id="calendarViewBtn" class="view-btn">Calendar View</button>
+                <button id="canvasSettingsBtn" class="view-btn canvas-btn">Canvas Integration</button>
             </div>
         </header>
 
         <main>
+            <!-- Canvas Integration Section -->
+            <section id="canvasSection" class="canvas-section" style="display: none;">
+                <h2>Canvas LMS Integration</h2>
+
+                <div class="canvas-setup">
+                    <div class="canvas-info">
+                        <p>Connect to your Canvas LMS to automatically import assignments.</p>
+                        <p><strong>How to get your Canvas Access Token:</strong></p>
+                        <ol>
+                            <li>Log into your Canvas account</li>
+                            <li>Go to Account → Settings</li>
+                            <li>Scroll down to "Approved Integrations"</li>
+                            <li>Click "+ New Access Token"</li>
+                            <li>Give it a name (e.g., "Assignment Tracker") and click "Generate Token"</li>
+                            <li>Copy the token and paste it below</li>
+                        </ol>
+                    </div>
+
+                    <form id="canvasConfigForm">
+                        <div class="form-group">
+                            <label for="canvasUrl">Canvas Instance URL</label>
+                            <input type="url" id="canvasUrl" placeholder="https://canvas.instructure.com" required>
+                            <small>Your school's Canvas URL (e.g., https://your-school.instructure.com)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="canvasToken">Canvas Access Token</label>
+                            <input type="password" id="canvasToken" placeholder="Your Canvas API token" required>
+                            <small>Keep this token secure! It provides access to your Canvas account.</small>
+                        </div>
+
+                        <div class="canvas-actions">
+                            <button type="submit" class="btn-primary">Save & Test Connection</button>
+                            <button type="button" id="clearCanvasConfig" class="btn-secondary">Clear Settings</button>
+                        </div>
+                    </form>
+
+                    <div id="canvasStatus" class="canvas-status"></div>
+                </div>
+
+                <div id="canvasImportSection" class="canvas-import" style="display: none;">
+                    <h3>Import Assignments from Canvas</h3>
+
+                    <div class="canvas-course-mapping">
+                        <p>Map your Canvas courses to your assignment tracker classes:</p>
+                        <div id="courseMappingList"></div>
+                    </div>
+
+                    <div class="import-controls">
+                        <button id="importCanvasBtn" class="btn-primary">Import Assignments from Canvas</button>
+                        <button id="refreshCanvasBtn" class="btn-secondary">Refresh Canvas Data</button>
+                    </div>
+
+                    <div id="importStatus" class="import-status"></div>
+                </div>
+            </section>
+
             <!-- Add Assignment Form -->
             <section class="add-assignment-section">
                 <h2>Add New Assignment</h2>
