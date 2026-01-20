@@ -6,10 +6,12 @@ class AssignmentTracker {
         this.currentMonth = new Date().getMonth();
         this.currentYear = new Date().getFullYear();
         this.selectedDate = null;
+        this.theme = this.loadTheme();
         this.init();
     }
 
     init() {
+        this.applyTheme();
         this.setupEventListeners();
         this.renderAssignments();
         this.updateStats();
@@ -47,6 +49,9 @@ class AssignmentTracker {
         // Calendar navigation
         document.getElementById('prevMonth').addEventListener('click', () => this.changeMonth(-1));
         document.getElementById('nextMonth').addEventListener('click', () => this.changeMonth(1));
+
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
     }
 
     // View Management
@@ -361,6 +366,30 @@ class AssignmentTracker {
         document.getElementById('totalAssignments').textContent = total;
         document.getElementById('incompleteAssignments').textContent = incomplete;
         document.getElementById('dueSoon').textContent = dueSoon;
+    }
+
+    // Theme Management
+    loadTheme() {
+        const stored = localStorage.getItem('theme');
+        return stored || 'light';
+    }
+
+    saveTheme() {
+        localStorage.setItem('theme', this.theme);
+    }
+
+    applyTheme() {
+        document.body.className = this.theme === 'dark' ? 'dark-theme' : '';
+        const themeIcon = document.getElementById('themeIcon');
+        if (themeIcon) {
+            themeIcon.textContent = this.theme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+
+    toggleTheme() {
+        this.theme = this.theme === 'light' ? 'dark' : 'light';
+        this.saveTheme();
+        this.applyTheme();
     }
 
     // Utility Functions
