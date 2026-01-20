@@ -2,6 +2,8 @@
 
 A modern, feature-rich web application for tracking academic assignments across multiple classes.
 
+**Live Demo:** [https://jschwartz1313.github.io/Assignment-Tracker/](https://jschwartz1313.github.io/Assignment-Tracker/)
+
 ## Features
 
 ### Two View Modes
