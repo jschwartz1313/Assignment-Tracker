@@ -547,23 +547,58 @@ class AssignmentTracker {
             return;
         }
 
+        // Remove trailing slash from URL if present
+        const cleanUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+
         // Test the connection
         this.showCanvasStatus('info', 'Testing connection to Canvas...');
+        console.log('Testing Canvas connection to:', cleanUrl);
 
         try {
-            const response = await fetch(`${url}/api/v1/users/self`, {
+            const testUrl = `${cleanUrl}/api/v1/users/self`;
+            console.log('Fetching:', testUrl);
+
+            const response = await fetch(testUrl, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
                 }
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', [...response.headers.entries()]);
+
             if (!response.ok) {
-                throw new Error('Invalid credentials or URL');
+                const errorText = await response.text();
+                console.error('Canvas API error response:', errorText);
+
+                let errorMessage = `Connection failed (HTTP ${response.status})`;
+
+                if (response.status === 401) {
+                    errorMessage = 'Authentication failed. Please check your access token.';
+                } else if (response.status === 403) {
+                    errorMessage = 'Access forbidden. Your token may not have the required permissions.';
+                } else if (response.status === 404) {
+                    errorMessage = 'API endpoint not found. Please verify your Canvas URL.';
+                } else {
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.errors) {
+                            errorMessage = `Canvas error: ${JSON.stringify(errorJson.errors)}`;
+                        }
+                    } catch (e) {
+                        errorMessage += `. Response: ${errorText.substring(0, 200)}`;
+                    }
+                }
+
+                throw new Error(errorMessage);
             }
 
             const user = await response.json();
+            console.log('Successfully connected as:', user.name);
 
-            this.canvasConfig = { url, token };
+            this.canvasConfig = { url: cleanUrl, token };
             this.saveCanvasConfigToStorage(this.canvasConfig);
 
             this.showCanvasStatus('success', `Successfully connected as ${user.name}!`);
@@ -571,7 +606,13 @@ class AssignmentTracker {
             // Load courses
             await this.loadCanvasCourses();
         } catch (error) {
-            this.showCanvasStatus('error', `Connection failed: ${error.message}`);
+            console.error('Canvas connection error:', error);
+
+            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                this.showCanvasStatus('error', `Network error: Unable to connect to ${cleanUrl}. This may be due to CORS restrictions. Check your browser console for details.`);
+            } else {
+                this.showCanvasStatus('error', `Connection failed: ${error.message}`);
+            }
         }
     }
 
@@ -595,25 +636,43 @@ class AssignmentTracker {
         if (!this.canvasConfig) return;
 
         try {
-            const response = await fetch(`${this.canvasConfig.url}/api/v1/courses?enrollment_state=active&per_page=100`, {
+            console.log('Loading courses from Canvas...');
+            const coursesUrl = `${this.canvasConfig.url}/api/v1/courses?enrollment_state=active&per_page=100`;
+            console.log('Fetching courses from:', coursesUrl);
+
+            const response = await fetch(coursesUrl, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${this.canvasConfig.token}`
+                    'Authorization': `Bearer ${this.canvasConfig.token}`,
+                    'Accept': 'application/json'
                 }
             });
 
+            console.log('Courses response status:', response.status);
+
             if (!response.ok) {
-                throw new Error('Failed to load courses');
+                const errorText = await response.text();
+                console.error('Failed to load courses:', errorText);
+                throw new Error(`Failed to load courses (HTTP ${response.status})`);
             }
 
             const courses = await response.json();
+            console.log('Loaded courses:', courses.length);
 
             // Filter out concluded courses and show course mapping
             const activeCourses = courses.filter(c => c.workflow_state !== 'concluded');
+            console.log('Active courses:', activeCourses.length);
+
+            if (activeCourses.length === 0) {
+                this.showCanvasStatus('info', 'No active courses found in your Canvas account.');
+                return;
+            }
 
             this.renderCourseMappings(activeCourses);
 
             document.getElementById('canvasImportSection').style.display = 'block';
         } catch (error) {
+            console.error('Error loading courses:', error);
             this.showCanvasStatus('error', `Failed to load courses: ${error.message}`);
         }
     }
@@ -676,27 +735,39 @@ class AssignmentTracker {
         }
 
         this.showImportStatus('info', 'Importing assignments from Canvas...');
+        console.log('Starting import for', mappedCourses.length, 'mapped courses');
 
         let importedCount = 0;
         let skippedCount = 0;
+        let errorCount = 0;
 
         try {
             for (const courseId of mappedCourses) {
                 const className = this.courseMappings[courseId];
+                console.log(`Fetching assignments for course ${courseId} (mapped to ${className})...`);
 
                 // Fetch assignments for this course
-                const response = await fetch(
-                    `${this.canvasConfig.url}/api/v1/courses/${courseId}/assignments?per_page=100`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${this.canvasConfig.token}`
-                        }
-                    }
-                );
+                const assignmentsUrl = `${this.canvasConfig.url}/api/v1/courses/${courseId}/assignments?per_page=100`;
+                console.log('Fetching:', assignmentsUrl);
 
-                if (!response.ok) continue;
+                const response = await fetch(assignmentsUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${this.canvasConfig.token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                console.log(`Course ${courseId} response status:`, response.status);
+
+                if (!response.ok) {
+                    console.error(`Failed to fetch assignments for course ${courseId}`);
+                    errorCount++;
+                    continue;
+                }
 
                 const assignments = await response.json();
+                console.log(`Found ${assignments.length} assignments in course ${courseId}`);
 
                 // Import assignments that aren't already imported
                 for (const canvasAssignment of assignments) {
@@ -739,12 +810,15 @@ class AssignmentTracker {
             this.updateStats();
             this.renderCalendar();
 
+            console.log('Import complete:', { importedCount, skippedCount, errorCount });
+
             const summary = `
                 <div class="import-summary">
                     <h4>Import Complete!</h4>
                     <ul>
                         <li>${importedCount} new assignment(s) imported</li>
                         <li>${skippedCount} assignment(s) skipped (already exist)</li>
+                        ${errorCount > 0 ? `<li>${errorCount} course(s) had errors</li>` : ''}
                     </ul>
                 </div>
             `;
@@ -752,6 +826,7 @@ class AssignmentTracker {
             this.showImportStatus('success', summary);
 
         } catch (error) {
+            console.error('Import error:', error);
             this.showImportStatus('error', `Import failed: ${error.message}`);
         }
     }
