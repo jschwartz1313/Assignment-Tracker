@@ -52,6 +52,21 @@ class AssignmentTracker {
 
         // Theme toggle
         document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
+
+        // Edit modal
+        document.getElementById('editAssignmentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveEditedAssignment();
+        });
+        document.getElementById('closeModal').addEventListener('click', () => this.closeEditModal());
+        document.getElementById('cancelEdit').addEventListener('click', () => this.closeEditModal());
+
+        // Close modal when clicking outside
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target.id === 'editModal') {
+                this.closeEditModal();
+            }
+        });
     }
 
     // View Management
@@ -121,6 +136,51 @@ class AssignmentTracker {
         }
     }
 
+    editAssignment(id) {
+        const assignment = this.assignments.find(a => a.id === id);
+        if (!assignment) return;
+
+        // Populate the edit form
+        document.getElementById('editAssignmentId').value = assignment.id;
+        document.getElementById('editAssignmentTitle').value = assignment.title;
+        document.getElementById('editAssignmentClass').value = assignment.class;
+
+        // Format date for datetime-local input
+        const dueDate = new Date(assignment.dueDate);
+        const formattedDate = this.formatDateTimeLocal(dueDate);
+        document.getElementById('editAssignmentDueDate').value = formattedDate;
+
+        document.getElementById('editAssignmentPriority').value = assignment.priority;
+        document.getElementById('editAssignmentDescription').value = assignment.description || '';
+
+        // Show the modal
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    saveEditedAssignment() {
+        const id = parseInt(document.getElementById('editAssignmentId').value);
+        const assignment = this.assignments.find(a => a.id === id);
+
+        if (!assignment) return;
+
+        // Update assignment with form values
+        assignment.title = document.getElementById('editAssignmentTitle').value.trim();
+        assignment.class = document.getElementById('editAssignmentClass').value;
+        assignment.dueDate = new Date(document.getElementById('editAssignmentDueDate').value);
+        assignment.priority = document.getElementById('editAssignmentPriority').value;
+        assignment.description = document.getElementById('editAssignmentDescription').value.trim();
+
+        this.saveAssignments();
+        this.renderAssignments();
+        this.updateStats();
+        this.renderCalendar();
+        this.closeEditModal();
+    }
+
+    closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
     // Filtering and Sorting
     getFilteredAndSortedAssignments() {
         let filtered = [...this.assignments];
@@ -181,6 +241,9 @@ class AssignmentTracker {
             document.getElementById(`complete-${assignment.id}`).addEventListener('click', () =>
                 this.toggleComplete(assignment.id)
             );
+            document.getElementById(`edit-${assignment.id}`).addEventListener('click', () =>
+                this.editAssignment(assignment.id)
+            );
             document.getElementById(`delete-${assignment.id}`).addEventListener('click', () =>
                 this.deleteAssignment(assignment.id)
             );
@@ -227,6 +290,7 @@ class AssignmentTracker {
                     <button id="complete-${assignment.id}" class="action-btn ${assignment.completed ? 'incomplete-btn' : 'complete-btn'}">
                         ${assignment.completed ? 'Mark Incomplete' : 'Complete'}
                     </button>
+                    <button id="edit-${assignment.id}" class="action-btn edit-btn">Edit</button>
                     <button id="delete-${assignment.id}" class="action-btn delete-btn">Delete</button>
                 </div>
             </div>
@@ -339,6 +403,9 @@ class AssignmentTracker {
                 this.toggleComplete(assignment.id);
                 this.showDateAssignments(date);
             });
+            document.getElementById(`edit-${assignment.id}`).addEventListener('click', () => {
+                this.editAssignment(assignment.id);
+            });
             document.getElementById(`delete-${assignment.id}`).addEventListener('click', () => {
                 this.deleteAssignment(assignment.id);
                 this.showDateAssignments(date);
@@ -412,6 +479,16 @@ class AssignmentTracker {
         const months = ['January', 'February', 'March', 'April', 'May', 'June',
                        'July', 'August', 'September', 'October', 'November', 'December'];
         return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+
+    formatDateTimeLocal(date) {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 
     getTimeUntil(date) {

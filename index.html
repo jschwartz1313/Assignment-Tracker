@@ -153,6 +153,62 @@
         <span id="themeIcon">🌙</span>
     </button>
 
+    <!-- Edit Assignment Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Assignment</h2>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <form id="editAssignmentForm">
+                <input type="hidden" id="editAssignmentId">
+
+                <div class="form-group">
+                    <label for="editAssignmentTitle">Assignment Title</label>
+                    <input type="text" id="editAssignmentTitle" required placeholder="e.g., Research Paper">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editAssignmentClass">Class</label>
+                        <select id="editAssignmentClass" required>
+                            <option value="">Select a class...</option>
+                            <option value="INLS 992">INLS 992</option>
+                            <option value="INLS 776">INLS 776</option>
+                            <option value="ENEC 543">ENEC 543</option>
+                            <option value="DATA 545">DATA 545</option>
+                            <option value="INLS 642">INLS 642</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editAssignmentDueDate">Due Date</label>
+                        <input type="datetime-local" id="editAssignmentDueDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editAssignmentPriority">Priority</label>
+                        <select id="editAssignmentPriority">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="editAssignmentDescription">Description (Optional)</label>
+                    <textarea id="editAssignmentDescription" rows="3" placeholder="Add notes or details about the assignment..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelEdit">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
