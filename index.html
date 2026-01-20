@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Assignment Tracker</h1>
+            <div class="view-toggle">
+                <button id="listViewBtn" class="view-btn active">List View</button>
+                <button id="calendarViewBtn" class="view-btn">Calendar View</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Add Assignment Form -->
+            <section class="add-assignment-section">
+                <h2>Add New Assignment</h2>
+                <form id="assignmentForm">
+                    <div class="form-group">
+                        <label for="assignmentTitle">Assignment Title</label>
+                        <input type="text" id="assignmentTitle" required placeholder="e.g., Research Paper">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignmentClass">Class</label>
+                            <select id="assignmentClass" required>
+                                <option value="">Select a class...</option>
+                                <option value="INLS 992">INLS 992</option>
+                                <option value="INLS 776">INLS 776</option>
+                                <option value="ENEC 543">ENEC 543</option>
+                                <option value="DATA 545">DATA 545</option>
+                                <option value="INLS 642">INLS 642</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="assignmentDueDate">Due Date</label>
+                            <input type="datetime-local" id="assignmentDueDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="assignmentPriority">Priority</label>
+                            <select id="assignmentPriority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assignmentDescription">Description (Optional)</label>
+                        <textarea id="assignmentDescription" rows="3" placeholder="Add notes or details about the assignment..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Add Assignment</button>
+                </form>
+            </section>
+
+            <!-- Filter and Sort Controls -->
+            <section class="controls-section">
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="filterClass">Filter by Class:</label>
+                        <select id="filterClass">
+                            <option value="all">All Classes</option>
+                            <option value="INLS 992">INLS 992</option>
+                            <option value="INLS 776">INLS 776</option>
+                            <option value="ENEC 543">ENEC 543</option>
+                            <option value="DATA 545">DATA 545</option>
+                            <option value="INLS 642">INLS 642</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterPriority">Filter by Priority:</label>
+                        <select id="filterPriority">
+                            <option value="all">All Priorities</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterStatus">Filter by Status:</label>
+                        <select id="filterStatus">
+                            <option value="all">All</option>
+                            <option value="incomplete">Incomplete</option>
+                            <option value="complete">Complete</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="sortBy">Sort by:</label>
+                        <select id="sortBy">
+                            <option value="dueDate">Due Date</option>
+                            <option value="priority">Priority</option>
+                            <option value="class">Class</option>
+                            <option value="title">Title</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalAssignments">0</span>
+                        <span class="stat-label">Total</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="incompleteAssignments">0</span>
+                        <span class="stat-label">Incomplete</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="dueSoon">0</span>
+                        <span class="stat-label">Due Soon</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- List View -->
+            <section id="listView" class="view-section active">
+                <h2>Assignments</h2>
+                <div id="assignmentsList" class="assignments-list">
+                    <p class="empty-state">No assignments yet. Add one above to get started!</p>
+                </div>
+            </section>
+
+            <!-- Calendar View -->
+            <section id="calendarView" class="view-section">
+                <div class="calendar-header">
+                    <button id="prevMonth" class="calendar-nav">‹</button>
+                    <h2 id="calendarMonthYear"></h2>
+                    <button id="nextMonth" class="calendar-nav">›</button>
+                </div>
+                <div id="calendar" class="calendar-grid"></div>
+                <div id="calendarAssignments" class="calendar-assignments">
+                    <h3>Selected Date Assignments</h3>
+                    <div id="selectedDateAssignments"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
