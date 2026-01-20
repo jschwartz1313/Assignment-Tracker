@@ -488,11 +488,11 @@ header h1 {
 }
 
 .calendar-date {
-    aspect-ratio: 1;
+    min-height: 120px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: flex-start;
     padding: 0.5rem;
     background: var(--background);
     border: 2px solid var(--border-color);
@@ -500,6 +500,7 @@ header h1 {
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    overflow: hidden;
 }
 
 .calendar-date:hover {
@@ -513,6 +514,15 @@ header h1 {
     font-weight: bold;
 }
 
+.calendar-date.today .date-number {
+    color: white;
+}
+
+.calendar-date.today .calendar-assignment-blurb {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
+}
+
 .calendar-date.other-month {
     color: var(--text-secondary);
     opacity: 0.5;
@@ -523,20 +533,78 @@ header h1 {
     border-width: 3px;
 }
 
-.calendar-date.has-assignments::after {
-    content: '';
-    position: absolute;
-    bottom: 4px;
-    width: 6px;
-    height: 6px;
-    background: var(--warning-color);
-    border-radius: 50%;
+.date-number {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    text-align: center;
 }
 
-.assignment-count {
+.calendar-assignments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.calendar-assignment-blurb {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.25rem 0.35rem;
     font-size: 0.7rem;
-    color: var(--warning-color);
-    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-assignment-blurb:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px var(--shadow);
+    z-index: 10;
+}
+
+.calendar-assignment-blurb.priority-high {
+    border-left: 3px solid var(--danger-color);
+}
+
+.calendar-assignment-blurb.priority-medium {
+    border-left: 3px solid var(--warning-color);
+}
+
+.calendar-assignment-blurb.priority-low {
+    border-left: 3px solid var(--success-color);
+}
+
+.calendar-assignment-blurb.completed {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.blurb-class-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.blurb-class-badge.inls-992 { background: var(--inls-992); }
+.blurb-class-badge.inls-776 { background: var(--inls-776); }
+.blurb-class-badge.enec-543 { background: var(--enec-543); }
+.blurb-class-badge.data-545 { background: var(--data-545); }
+.blurb-class-badge.inls-642 { background: var(--inls-642); }
+
+.blurb-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .calendar-assignments {
@@ -584,6 +652,25 @@ header h1 {
 
     .action-btn {
         flex: 1;
+    }
+
+    .calendar-date {
+        min-height: 100px;
+        padding: 0.3rem;
+    }
+
+    .date-number {
+        font-size: 0.8rem;
+    }
+
+    .calendar-assignment-blurb {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.3rem;
+    }
+
+    .blurb-class-badge {
+        width: 6px;
+        height: 6px;
     }
 }
 

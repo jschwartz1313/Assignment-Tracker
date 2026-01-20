@@ -334,10 +334,28 @@ class AssignmentTracker {
             if (this.selectedDate && this.isSameDay(currentDate, this.selectedDate)) classes += ' selected';
             if (assignmentsOnDate.length > 0) classes += ' has-assignments';
 
+            // Build assignment blurbs
+            const blurbsHTML = assignmentsOnDate.map(assignment => {
+                const classSlug = assignment.class.toLowerCase().replace(' ', '-');
+                const priorityClass = `priority-${assignment.priority}`;
+                const completedClass = assignment.completed ? 'completed' : '';
+
+                return `
+                    <div class="calendar-assignment-blurb ${priorityClass} ${completedClass}"
+                         data-assignment-id="${assignment.id}"
+                         title="${this.escapeHtml(assignment.title)} - ${assignment.class}">
+                        <div class="blurb-class-badge ${classSlug}"></div>
+                        <span class="blurb-title">${this.escapeHtml(assignment.title)}</span>
+                    </div>
+                `;
+            }).join('');
+
             datesHTML += `
                 <div class="${classes}" data-date="${currentDate.toISOString()}">
-                    <span>${i}</span>
-                    ${assignmentsOnDate.length > 0 ? `<span class="assignment-count">${assignmentsOnDate.length}</span>` : ''}
+                    <div class="date-number">${i}</div>
+                    <div class="calendar-assignments-list">
+                        ${blurbsHTML}
+                    </div>
                 </div>
             `;
         }
@@ -351,15 +369,29 @@ class AssignmentTracker {
         datesHTML += '</div>';
         calendar.innerHTML = datesHTML;
 
-        // Add click events
+        // Add click events for calendar dates (clicking on empty space)
         document.querySelectorAll('.calendar-date:not(.other-month)').forEach(dateEl => {
             dateEl.addEventListener('click', (e) => {
+                // If clicking on an assignment blurb, don't trigger date selection
+                if (e.target.closest('.calendar-assignment-blurb')) {
+                    return;
+                }
+
                 const dateStr = e.currentTarget.dataset.date;
                 if (dateStr) {
                     this.selectedDate = new Date(dateStr);
                     this.renderCalendar();
                     this.showDateAssignments(this.selectedDate);
                 }
+            });
+        });
+
+        // Add click events for assignment blurbs
+        document.querySelectorAll('.calendar-assignment-blurb').forEach(blurbEl => {
+            blurbEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const assignmentId = parseInt(blurbEl.dataset.assignmentId);
+                this.showAssignmentDetail(assignmentId);
             });
         });
     }
@@ -383,6 +415,24 @@ class AssignmentTracker {
         this.renderCalendar();
     }
 
+    showAssignmentDetail(assignmentId) {
+        const assignment = this.assignments.find(a => a.id === assignmentId);
+        if (!assignment) return;
+
+        // Update the selected date to the assignment's date
+        this.selectedDate = new Date(assignment.dueDate);
+        this.renderCalendar();
+
+        // Show the assignment in the detail area
+        this.showDateAssignments(this.selectedDate);
+
+        // Scroll to the assignments area
+        document.getElementById('calendarAssignments').scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest'
+        });
+    }
+
     showDateAssignments(date) {
         const container = document.getElementById('selectedDateAssignments');
         const assignments = this.getAssignmentsOnDate(date);
@@ -401,6 +451,7 @@ class AssignmentTracker {
         assignments.forEach(assignment => {
             document.getElementById(`complete-${assignment.id}`).addEventListener('click', () => {
                 this.toggleComplete(assignment.id);
+                this.renderCalendar();
                 this.showDateAssignments(date);
             });
             document.getElementById(`edit-${assignment.id}`).addEventListener('click', () => {
@@ -408,6 +459,7 @@ class AssignmentTracker {
             });
             document.getElementById(`delete-${assignment.id}`).addEventListener('click', () => {
                 this.deleteAssignment(assignment.id);
+                this.renderCalendar();
                 this.showDateAssignments(date);
             });
         });
