@@ -513,6 +513,12 @@ class AssignmentTracker {
     }
 
     // Canvas Integration
+    // CORS proxy to bypass browser restrictions when calling Canvas API
+    corsProxy(url) {
+        // Using corsproxy.io - a reliable public CORS proxy
+        return `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    }
+
     loadCanvasConfig() {
         const stored = localStorage.getItem('canvasConfig');
         return stored ? JSON.parse(stored) : null;
@@ -557,8 +563,9 @@ class AssignmentTracker {
         try {
             const testUrl = `${cleanUrl}/api/v1/users/self`;
             console.log('Fetching:', testUrl);
+            console.log('Using CORS proxy...');
 
-            const response = await fetch(testUrl, {
+            const response = await fetch(this.corsProxy(testUrl), {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -640,7 +647,7 @@ class AssignmentTracker {
             const coursesUrl = `${this.canvasConfig.url}/api/v1/courses?enrollment_state=active&per_page=100`;
             console.log('Fetching courses from:', coursesUrl);
 
-            const response = await fetch(coursesUrl, {
+            const response = await fetch(this.corsProxy(coursesUrl), {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this.canvasConfig.token}`,
@@ -750,7 +757,7 @@ class AssignmentTracker {
                 const assignmentsUrl = `${this.canvasConfig.url}/api/v1/courses/${courseId}/assignments?per_page=100`;
                 console.log('Fetching:', assignmentsUrl);
 
-                const response = await fetch(assignmentsUrl, {
+                const response = await fetch(this.corsProxy(assignmentsUrl), {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${this.canvasConfig.token}`,
