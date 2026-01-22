@@ -784,16 +784,23 @@ class AssignmentTracker {
                 console.log(`Found ${assignments.length} assignments in course ${courseId}`);
 
                 // Import assignments that aren't already imported
+                let updatedCount = 0;
                 for (const canvasAssignment of assignments) {
                     if (!canvasAssignment.due_at) continue; // Skip assignments without due dates
 
                     // Check if already imported (by checking if same title and class exists)
-                    const exists = this.assignments.some(a =>
+                    const existingAssignment = this.assignments.find(a =>
                         a.title === canvasAssignment.name &&
                         a.class === className
                     );
 
-                    if (exists) {
+                    if (existingAssignment) {
+                        // Update existing assignment with Canvas URL if missing
+                        if (!existingAssignment.canvasUrl && canvasAssignment.html_url) {
+                            existingAssignment.canvasUrl = canvasAssignment.html_url;
+                            existingAssignment.canvasId = canvasAssignment.id;
+                            updatedCount++;
+                        }
                         skippedCount++;
                         continue;
                     }
@@ -817,6 +824,10 @@ class AssignmentTracker {
 
                     // Small delay to avoid ID collisions
                     await new Promise(resolve => setTimeout(resolve, 1));
+                }
+
+                if (updatedCount > 0) {
+                    console.log(`Updated ${updatedCount} existing assignments with Canvas URLs`);
                 }
             }
 
