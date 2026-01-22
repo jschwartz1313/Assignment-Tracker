@@ -308,6 +308,13 @@ class AssignmentTracker {
                         <div class="assignment-meta-item">
                             <span>${timeUntil}</span>
                         </div>
+                        ${assignment.canvasUrl ? `
+                        <div class="assignment-meta-item">
+                            <a href="${assignment.canvasUrl}" target="_blank" rel="noopener noreferrer" class="canvas-link">
+                                View in Canvas →
+                            </a>
+                        </div>
+                        ` : ''}
                     </div>
                     ${assignment.description ? `<p class="assignment-description">${this.escapeHtml(assignment.description)}</p>` : ''}
                 </div>
@@ -801,7 +808,8 @@ class AssignmentTracker {
                         description: canvasAssignment.description?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
                         completed: false,
                         createdAt: new Date(),
-                        canvasId: canvasAssignment.id // Store Canvas ID for future reference
+                        canvasId: canvasAssignment.id, // Store Canvas ID for future reference
+                        canvasUrl: canvasAssignment.html_url // Direct link to Canvas assignment
                     };
 
                     this.assignments.push(assignment);

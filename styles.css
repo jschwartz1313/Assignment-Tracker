@@ -389,6 +389,25 @@ header h1 {
     line-height: 1.5;
 }
 
+.canvas-link {
+    color: #e74c3c;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.canvas-link:hover {
+    background: rgba(231, 76, 60, 0.2);
+    color: #c0392b;
+}
+
 .assignment-actions {
     display: flex;
     gap: 0.5rem;
